@@ -1,0 +1,214 @@
+#!/bin/bash
+
+VERSION="1.0"
+
+# Function to display usage information
+usage() {
+  cat << EOF
+Usage: $(basename "$0") [OPTIONS]
+
+  -d, --directories <dir1>[,<dir2>...]   Directories to search (default: .)
+  -e, --extensions <ext1>[,<ext2>...]    File extensions to combine (optional)
+  -x, --exclude <exclude1>[,<exclude2>...] Excluded directories
+  -o, --output <output_file>             Output file (default: output_combined_files.txt)
+  -h, --header <header>                  Header text for output (optional)
+  -s, --silent                           Silent mode (suppress path printing)
+  -v, --version                          Print version number
+  -a, --append                           Append to output file instead of overwriting
+  -y, --yes                              Skip confirmation prompt before writing files
+  -p, --print                            Print relative paths to the terminal
+
+Examples:
+  Combine .js and .ts files in the current directory, excluding node_modules:
+    $(basename "$0") -e js,ts -x node_modules
+
+  Combine all files in src and lib, add a header, and suppress path printing:
+    $(basename "$0") -d src,lib -h "My Project Files" -s -o combined.txt
+
+  Append .py files from scripts to existing_code.txt, skipping confirmation:
+    $(basename "$0") -d scripts -e py -a -o existing_code.txt -y
+
+EOF
+  exit 1
+}
+
+# Set default output file
+output_file="output_combined_files.txt"
+exclusions=""
+directories="."  # Default to current directory
+header=""
+silent_mode=false  # Flag to control printing of paths
+append_mode=false # Flag to control appending
+skip_confirm=false # Flag to control confirmation prompt
+print_paths=false # Flag to control printing of paths
+
+# Process command line arguments
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    -d | --directories)
+      directories="$2"
+      shift 2
+      ;;
+    -e | --extensions)
+      extensions="$2"
+      shift 2
+      ;;
+    -x | --exclude)
+      exclusions="$2"
+      shift 2
+      ;;
+    -o | --output)
+      output_file="$2"
+      shift 2
+      ;;
+    -h | --header)
+      header="$2"
+      shift 2
+      ;;
+    -s | --silent)
+      silent_mode=true
+      shift
+      ;;
+    -v | --version)
+      echo "onefile version $VERSION"
+      exit 0
+      ;;
+    -a | --append)
+      append_mode=true
+      shift
+      ;;
+    -y | --yes)
+      skip_confirm=true
+      shift
+      ;;
+    -p | --print)
+      print_paths=true
+      shift
+      ;;
+    -*)
+      echo "Invalid option: $1" >&2
+      usage
+      ;;
+    *)
+      break
+      ;;
+  esac
+done
+
+# Process each directory and extension
+IFS=',' read -ra directory_array <<< "$directories"
+IFS=',' read -ra extension_array <<< "$extensions"
+IFS=',' read -ra exclusion_array <<< "$exclusions"
+
+# Array to store matching files
+matching_files=()
+
+for directory in "${directory_array[@]}"; do
+  # Check if directory exists
+  if [ ! -d "$directory" ]; then
+    echo "Error: Directory '$directory' does not exist." >&2
+    continue  # Skip to the next directory
+  fi
+
+  # Build find command with exclusions
+  find_command=(find "$directory" -type f)
+
+  # Add exclusion logic if needed
+  if [[ ${#exclusion_array[@]} -gt 0 ]]; then
+    find_command+=(-not \( )
+
+    for ((i=0; i<${#exclusion_array[@]}; i++)); do
+      exclude_dir="${exclusion_array[$i]}"
+
+      # Construct exclusion paths correctly
+      if [[ "$directory" == "." ]]; then
+        find_command+=(-path "./${exclude_dir}*")
+      else
+        find_command+=(-path "${exclude_dir}*")
+      fi
+
+      if ((i < ${#exclusion_array[@]} - 1)); then
+        find_command+=(-or)
+      fi
+    done
+
+    find_command+=(\) )
+  fi
+
+  # File extension matching (only if extensions are provided)
+  if [[ -n "$extensions" ]]; then
+    find_command+=( \( )
+    for ((i=0; i<${#extension_array[@]}; i++)); do
+        extension="${extension_array[$i]}"
+        find_command+=(-name "*.$extension")
+
+        if ((i < ${#extension_array[@]} - 1)); then
+            find_command+=(-o)
+        fi
+    done
+    find_command+=(\) )
+  fi
+
+  # Add -print0 to print the matched files separated by null characters
+  find_command+=(-print0)
+
+  # Execute find command and store matching files in an array
+  while IFS= read -r -d $'\0' file; do
+    matching_files+=("$file")
+  done < <( "${find_command[@]}" )
+done
+
+# Ask for confirmation before writing files (if not skipping confirmation)
+if ! $skip_confirm; then
+    num_files=${#matching_files[@]}
+    read -r -p "Write ${num_files} files to ${output_file}? (y/n): " response
+
+    if [[ "$response" != "y" ]]; then
+        echo "Aborted."
+        exit 1
+    fi
+fi
+
+# Ask if the user wants to log the relative paths to the terminal (if not in silent mode)
+if ! $silent_mode && ! $print_paths; then
+  read -r -p "Print relative paths to terminal? (y/n): " log_paths
+fi
+
+# Create or append to the output file
+if $append_mode; then
+  # Append to the output file
+  : >> "$output_file" || { echo "Error: Could not open output file: $output_file" >&2; exit 1; }
+else
+  # Create the output file and truncate it
+  > "$output_file" || { echo "Error: Could not create output file: $output_file" >&2; exit 1; }
+fi
+
+# Add header if specified
+if [ -n "$header" ]; then
+  echo "$header" >> "$output_file"
+fi
+
+# Process matching files and write to output
+for file in "${matching_files[@]}"; do
+  # Construct relative path
+  if [[ "$directory" == "." ]]; then
+    relative_path="$file"
+  else
+    relative_path=$(echo "$file" | sed "s|^$directory/||")
+  fi
+
+  # Log the relative path if not in silent mode and the user agreed or print paths flag is set
+  if $print_paths || (! $silent_mode && [[ "$log_paths" == "y" ]]); then
+    echo " $relative_path"
+  fi
+
+  # Print separator, file name, and file content
+  echo "----------------------------------------" >> "$output_file"
+  echo " $relative_path" >> "$output_file"
+  echo "----------------------------------------" >> "$output_file"
+  cat "$file" >> "$output_file"
+  echo "" >> "$output_file"
+done
+
+echo "Files combined into $output_file"
+exit 0

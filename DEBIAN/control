@@ -1,0 +1,9 @@
+Package: onefile
+Version: 1-0
+Architecture: all
+Maintainer: Andrea de Candia <andy.decandia@gmail.com>
+Description: Combine files by extension
+ This is a longer description of the one_file utility.
+ It allows you to combine files from multiple directories
+ based on their extensions while excluding specific
+ directories.

@@ -1,0 +1,92 @@
+.TH ONEFILE 1 "December 2024" "onefile 1.0" "User Commands"
+.SH NAME
+onefile \- Combine files of specified extensions into a single output file
+.SH SYNOPSIS
+.B onefile
+.RI [ OPTIONS ]
+.SH DESCRIPTION
+The
+.B onefile
+utility combines files from specified directories, matching given extensions, into a single output file. It optionally allows excluding directories, adding a header to the output, suppressing the printing of relative file paths during processing, skipping the confirmation prompt, and always printing relative paths.
+.SH OPTIONS
+.TP
+.BR "\-d, \-\-directories " "<dir1>[,<dir2>...]"
+Comma-separated list of directories to search. If not specified, the default is the current directory (.).
+.TP
+.BR "\-e, \-\-extensions " "<ext1>[,<ext2>...]"
+Comma-separated list of file extensions to combine (e.g., js,ts). If not specified, all files (except those excluded) are included.
+.TP
+.BR "\-x, \-\-exclude " "<exclude1>[,<exclude2>...]"
+Comma-separated list of directories to exclude.
+.TP
+.BR "\-o, \-\-output " "<output_file>"
+Specify the output file. The default is
+.IR output_combined_files.txt .
+.TP
+.BR "\-h, \-\-header " "<header>"
+Add a header text at the beginning of the output file.
+.TP
+.B \-s, \-\-silent
+Suppress printing of relative file paths to the terminal during processing.
+.TP
+.BR "\-v, \-\-version"
+Print the version number of the
+.B onefile
+utility and exit.
+.TP
+.BR "\-a, \-\-append"
+Append to the output file instead of overwriting it.
+.TP
+.BR "\-y, \-\-yes"
+Skip the confirmation prompt before writing files.
+.TP
+.BR "\-p, \-\-print"
+Always print relative file paths to the terminal, even without the prompt.
+.SH OPERANDS
+None.
+.SH "EXIT STATUS"
+The
+.B onefile
+utility exits with one of the following values:
+.TP
+0
+Successful completion.
+.TP
+1
+An error occurred (e.g., invalid option, missing argument, directory not found, file write error).
+.SH EXAMPLES
+Combine all .js and .ts files in the current directory, excluding node_modules, into output.txt:
+.TP 3
+.B onefile
+-e js,ts -x node_modules -o output.txt
+.PP
+Combine all files in the src and lib directories, add a header, and suppress path printing:
+.TP 3
+.B onefile
+-d src,lib -h "My Project Files" -s -o combined.txt
+.PP
+Append all .py files from the scripts directory to existing_code.txt, skipping the confirmation:
+.TP 3
+.B onefile
+-d scripts -e py -a -o existing_code.txt -y
+.PP
+Print the version number of onefile:
+.TP 3
+.B onefile
+-v
+.PP
+Always print relative paths to the terminal without the prompt:
+.TP 3
+.B onefile
+-e js -p
+.PP
+Use long-form options:
+.TP 3
+.B onefile
+--directories src,lib --extensions js,ts --exclude .git,tmp --output combined.txt --append --yes
+.SH "SEE ALSO"
+.BR find (1),
+.BR cat (1)
+.SH AUTHOR
+Written by Andrea de Candia
+
