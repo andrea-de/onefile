@@ -1,9 +1,10 @@
 Package: onefile
-Version: 1-0
+Source: onefile
+Version: 1.0.0
 Architecture: all
-Maintainer: Andrea de Candia <andy.decandia@gmail.com>
-Description: Combine files by extension
- This is a longer description of the one_file utility.
- It allows you to combine files from multiple directories
- based on their extensions while excluding specific
- directories.
+Section: utils
+Maintainer: Andrea de Candia andy.decandia@gmail.com
+Homepage: <https://github.com/andrea-de/onefile>
+Description: A command-line tool to combine files for use in AI-assisted development, specifically tailored for efficient input preparation in interactive LLM sessions. It addresses the limitations of AI-integrated code editors by offering flexibility in supporting various LLMs.
+Build-Depends: debhelper (>= 9), dh-make
+Depends: ${misc:Depends}

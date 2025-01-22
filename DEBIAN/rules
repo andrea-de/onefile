@@ -1,0 +1,11 @@
+#!/usr/bin/make -f
+
+%:
+    dh $@
+
+override_dh_install:
+    dh_install
+    install -d $(CURDIR)/debian/onefile/usr/local/bin
+    install -m 755 $(CURDIR)/usr/local/bin/onefile $(CURDIR)/debian/onefile/usr/local/bin/
+    install -d $(CURDIR)/debian/onefile/usr/share/man/man1
+    install -m 644 $(CURDIR)/usr/share/man/man1/onefile.1 $(CURDIR)/debian/onefile/usr/share/man/man1/

@@ -8,10 +8,10 @@ usage() {
 Usage: $(basename "$0") [OPTIONS]
 
   -d, --directories <dir1>[,<dir2>...]   Directories to search (default: .)
-  -e, --extensions <ext1>[,<ext2>...]    File extensions to combine (optional)
+  -e, --extensions <ext1>[,<ext2>...]    File extensions to combine
   -x, --exclude <exclude1>[,<exclude2>...] Excluded directories
   -o, --output <output_file>             Output file (default: output_combined_files.txt)
-  -h, --header <header>                  Header text for output (optional)
+  -h, --header <header>                  Header text for output
   -s, --silent                           Silent mode (suppress path printing)
   -v, --version                          Print version number
   -a, --append                           Append to output file instead of overwriting
@@ -124,8 +124,11 @@ for directory in "${directory_array[@]}"; do
       if [[ "$directory" == "." ]]; then
         find_command+=(-path "./${exclude_dir}*")
       else
-        find_command+=(-path "${exclude_dir}*")
+        find_command+=(-path "${directory}/${exclude_dir}*")
       fi
+
+      # Exclude directories that start with '.' by default
+      find_command+=(-or -path "${directory}/.*" )
 
       if ((i < ${#exclusion_array[@]} - 1)); then
         find_command+=(-or)
@@ -133,7 +136,13 @@ for directory in "${directory_array[@]}"; do
     done
 
     find_command+=(\) )
+  else
+    # Exclude directories that start with '.' by default
+    find_command+=(-not -path "${directory}/.*" )
   fi
+
+  # Exclude the output file itself
+  find_command+=(-not -name "$output_file")
 
   # File extension matching (only if extensions are provided)
   if [[ -n "$extensions" ]]; then
@@ -190,6 +199,17 @@ fi
 
 # Process matching files and write to output
 for file in "${matching_files[@]}"; do
+  # Skip the output file itself
+  if [[ "$file" == "$output_file" ]]; then
+    continue
+  fi
+
+  # Check if the file is likely binary using 'file' command
+  if [[ $(file -i "$file") != *"text"* ]]; then
+    echo "Skipping binary file: $file"
+    continue
+  fi
+  
   # Construct relative path
   if [[ "$directory" == "." ]]; then
     relative_path="$file"
